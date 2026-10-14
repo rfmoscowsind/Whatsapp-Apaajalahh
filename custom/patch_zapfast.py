@@ -60,8 +60,8 @@ for name in ["config","state","cache","run"]:
     change(paths, f'fallback.join("zapfast-{name}")',f'fallback.join("apaajalahh-{name}")')
 # Disallow importing legacy FastsApp sessions into this newly isolated profile.
 change(paths,
-       'for name in ["fastsapp", "fastwhatsapp"] {',
-       'for name in [] as [&str; 0] {')
+       'pub fn adopt_previous_names(&self) -> std::io::Result<()> {\n        for name in ["fastsapp", "fastwhatsapp"] {',
+       'pub fn adopt_previous_names(&self) -> std::io::Result<()> {\n        for name in [] as [&str; 0] {')
 
 # Make default UI more legible at high-resolution desktop sizes; no web engine.
 settings="src/settings.rs"
