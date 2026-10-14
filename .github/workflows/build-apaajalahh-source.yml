@@ -1,0 +1,72 @@
+name: Build Apaajalahh Native Source
+
+on:
+  push:
+    branches:
+      - feature/apaajalahh-native-source
+      - main
+    paths:
+      - '.github/workflows/build-apaajalahh-source.yml'
+      - 'custom/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Apaajalahh overlays
+        uses: actions/checkout@v4
+        with:
+          path: apaajalahh
+      - name: Checkout pinned ZapFast source (MIT)
+        uses: actions/checkout@v4
+        with:
+          repository: crmne/zapfast
+          ref: 6f3766a38328ad081120c91e95ae68cc7e7a3466
+          path: upstream
+          persist-credentials: false
+      - name: Apply checked Apaajalahh patches
+        shell: pwsh
+        run: |
+          python apaajalahh/custom/patch_zapfast.py upstream
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Use pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Add Windows MSVC rust target
+        shell: pwsh
+        working-directory: upstream
+        run: rustup target add x86_64-pc-windows-msvc
+      - name: Test read receipt regression in release profile
+        shell: pwsh
+        working-directory: upstream
+        run: |
+          cargo test --locked --release --lib apaajalahh_receipt_regression --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compile native Windows application from patched source
+        shell: pwsh
+        working-directory: upstream
+        run: |
+          cargo build --locked --release --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Bundle license notices and executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item upstream/target/x86_64-pc-windows-msvc/release/zapfast.exe dist/Apaajalahh.exe
+          Copy-Item upstream/LICENSE dist/LICENSE
+          Copy-Item upstream/THIRD-PARTY-NOTICES.md dist/THIRD-PARTY-NOTICES.md
+          Copy-Item apaajalahh/custom/README-PORTABLE.txt dist/README-PORTABLE.txt
+          if (!(Test-Path dist/Apaajalahh.exe)) { throw 'Missing Apaajalahh executable' }
+          Compress-Archive -Path dist/* -DestinationPath Apaajalahh-Native-Windows-x64.zip -Force
+      - name: Upload native Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Apaajalahh-Native-Source-win-x64
+          path: Apaajalahh-Native-Windows-x64.zip
+          if-no-files-found: error
