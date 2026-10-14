@@ -1,9 +1,6 @@
-name: Build WA Native Lite (Windows)
+name: Legacy WA Native Lite (Windows)
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
