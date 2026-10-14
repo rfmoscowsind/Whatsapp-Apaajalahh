@@ -1,0 +1,15 @@
+<Window x:Class="WANativeLite.QrWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="Link WhatsApp Test Account" Width="414" Height="480" ResizeMode="NoResize"
+ Background="#111B21" Foreground="White" WindowStartupLocation="CenterOwner">
+ <StackPanel HorizontalAlignment="Center" Margin="22">
+  <TextBlock Text="Link test phone" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,18,0,9"/>
+  <TextBlock Text="WhatsApp on phone → Linked devices → Link a device" Foreground="#A8BBC5"
+             TextWrapping="Wrap" TextAlignment="Center" Width="350"/>
+  <Border Background="White" CornerRadius="10" Margin="0,22,0,18" Padding="11">
+   <Image x:Name="QrImage" Width="304" Height="304" Stretch="Uniform"/>
+  </Border>
+  <TextBlock Text="QR rotates automatically • Never share this code" Foreground="#90A8B3" TextAlignment="Center"/>
+ </StackPanel>
+</Window>

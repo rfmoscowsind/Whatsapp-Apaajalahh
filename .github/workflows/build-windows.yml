@@ -1,4 +1,4 @@
-name: Build Windows
+name: Build WA Native Lite (Windows)
 
 on:
   push:
@@ -10,23 +10,61 @@ permissions:
   contents: read
 
 jobs:
-  windows:
+  windows-x64:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
         with:
-          dotnet-version: '8.0.x'
-      - name: Publish Windows x64 (self-contained)
+          go-version: '1.26.5'
+          cache: false
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Resolve pinned Go modules
+        working-directory: engine
+        shell: pwsh
+        run: go mod tidy
+      - name: Test engine and vet
+        working-directory: engine
+        shell: pwsh
+        run: |
+          go test ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go vet ./...
+          exit $LASTEXITCODE
+      - name: Publish native Windows UI
         shell: pwsh
         run: dotnet publish desktop/WANativeLite.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableWindowsTargeting=true -o out
-      - name: Package portable app
+      - name: Compile WhatsApp engine
+        working-directory: engine
         shell: pwsh
-        run: Compress-Archive -Path out/* -DestinationPath WA-Native-Lite-win-x64.zip
-      - name: Upload build artifact
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          New-Item -ItemType Directory -Force -Path ../out/engine | Out-Null
+          go build -trimpath -ldflags="-s -w" -o ../out/engine/wa-engine.exe .
+          exit $LASTEXITCODE
+      - name: Verify portable output
+        shell: pwsh
+        run: |
+          if (!(Test-Path out/WANativeLite.exe)) { throw "Missing GUI executable" }
+          if (!(Test-Path out/engine/wa-engine.exe)) { throw "Missing engine executable" }
+          Compress-Archive -Path out/* -DestinationPath WA-Native-Lite-win-x64.zip -Force
+      - name: Upload portable Windows build
         uses: actions/upload-artifact@v4
         with:
           name: WA-Native-Lite-win-x64
           path: WA-Native-Lite-win-x64.zip
+          if-no-files-found: error
+      - name: Upload pinned resolution details
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-module-lock
+          path: |
+            engine/go.mod
+            engine/go.sum
           if-no-files-found: error
